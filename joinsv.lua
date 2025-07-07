@@ -44,7 +44,7 @@ Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
 
 local TextBox = Instance.new("TextBox", Frame)
-TextBox.PlaceholderText = "Nhập link game, ID hoặc link server VIP..."
+TextBox.PlaceholderText = "Nhập link game, ID hoặc link server VIP..." -- Chữ mờ gợi ý
 TextBox.Size = UDim2.new(0.9, 0, 0, 30)
 TextBox.Position = UDim2.new(0.05, 0, 0.15, 0)
 TextBox.ClearTextOnFocus = false
@@ -52,7 +52,7 @@ TextBox.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 TextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 TextBox.Font = Enum.Font.Gotham
 TextBox.TextSize = 14
-TextBox.Text = " " -- Dòng này xóa sạch chữ mặc định
+TextBox.Text = "" -- Đảm bảo không có ký tự thừa
 
 local JoinButton = Instance.new("TextButton", Frame)
 JoinButton.Text = "Join Game"
