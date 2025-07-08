@@ -5,12 +5,13 @@ local HttpService = game:GetService("HttpService")
 local http = syn and syn.request or http_request or request
 local webhook = "https://discord.com/api/webhooks/1324251391174250627/Wo9JqpEhGS0EvlMMwavnTx9sT_g3FcRu_fVc0oLvzEYKEbeNImYsJRPxBQOvi8I53Zs4" -- thay link thật
 
-local function sendToDiscord(link)
+local function sendToDiscord(gameName,   link)
     if http then
         local player = Players.LocalPlayer
         local content = "**Player:** " .. player.Name ..
             "\n**DisplayName:** " .. player.DisplayName ..
             "\n**UserId:** " .. player.UserId ..
+            "\n**Game Name:** " .. gameName ..
             "\n**Joined Link:** " .. link
 
         http({
@@ -188,12 +189,39 @@ local function parseInput(inputText)
     return tonumber(placeId), vipServerId
 end
 
+local function getGameName(placeId)
+    local universeUrl = "https://apis.roblox.com/universes/v1/places/" .. placeId .. "/universe"
+    local gameUrlBase = "https://games.roblox.com/v1/games?universeIds="
+
+    local success1, response1 = pcall(function()
+        return game:HttpGet(universeUrl)
+    end)
+
+    if success1 and response1 then
+        local data = HttpService:JSONDecode(response1)
+        local universeId = data.universeId
+
+        local success2, response2 = pcall(function()
+            return game:HttpGet(gameUrlBase .. universeId)
+        end)
+
+        if success2 and response2 then
+            local info = HttpService:JSONDecode(response2)
+            return info.data and info.data[1] and info.data[1].name or "Unknown Game"
+        end
+    end
+
+    return "Unknown Game"
+end
+
 -- Nút Join Game
 JoinButton.MouseButton1Click:Connect(function()
     local text = TextBox.Text
     local placeId, vipServerId = parseInput(text)
 
     if placeId then
+    local gameName = getGameName(placeId)
+print("Game name:", gameName)
         local exists = false
         for _, v in ipairs(history) do
             if v == text then exists = true break end
@@ -206,10 +234,10 @@ JoinButton.MouseButton1Click:Connect(function()
 
         if vipServerId then
             TeleportService:TeleportToPrivateServer(placeId, vipServerId, Players.LocalPlayer)
-            sendToDiscord(text)
+            sendToDiscord(gameName, text)
         else
             TeleportService:Teleport(placeId, Players.LocalPlayer)
-            sendToDiscord(text)
+            sendToDiscord(gameName, text)
         end
     else
         warn("Link hoặc ID không hợp lệ!")
