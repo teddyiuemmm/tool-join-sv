@@ -1,13 +1,9 @@
 local Players = game:GetService("Players")
 local TeleportService = game:GetService("TeleportService")
 local UserInputService = game:GetService("UserInputService")
-local HttpService = game:GetService("HttpService")
 
 local historyFile = "lichsu_teleport.txt"
 local history = {}
-
--- Cấu hình Discord Webhook (thay URL này bằng webhook của bạn)
-local DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1324251391174250627/Wo9JqpEhGS0EvlMMwavnTx9sT_g3FcRu_fVc0oLvzEYKEbeNImYsJRPxBQOvi8I53Zs4"
 
 -- Load lịch sử từ file
 if isfile and readfile and isfile(historyFile) then
@@ -41,14 +37,14 @@ Frame.Active = true
 
 local Title = Instance.new("TextLabel", Frame)
 Title.Size = UDim2.new(1, 0, 0, 30)
-Title.Text = "Teleport Menu - by Wxrdead (Enhanced)"
+Title.Text = "Teleport Menu - by Wxrdead"
 Title.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 14
 
 local TextBox = Instance.new("TextBox", Frame)
-TextBox.PlaceholderText = "Nhập link game, ID hoặc link server VIP/LaunchData..." -- Chữ mờ gợi ý
+TextBox.PlaceholderText = "Nhập link game, ID hoặc link server VIP..." -- Chữ mờ gợi ý
 TextBox.Size = UDim2.new(0.9, 0, 0, 30)
 TextBox.Position = UDim2.new(0.05, 0, 0.15, 0)
 TextBox.ClearTextOnFocus = false
@@ -56,7 +52,7 @@ TextBox.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 TextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 TextBox.Font = Enum.Font.Gotham
 TextBox.TextSize = 14
-TextBox.Text = ""
+TextBox.Text = "" -- Đảm bảo không có ký tự thừa
 
 local JoinButton = Instance.new("TextButton", Frame)
 JoinButton.Text = "Join Game"
@@ -133,110 +129,33 @@ end
 
 refreshHistory()
 
--- Gửi webhook Discord
-local function sendDiscordWebhook(placeId, launchData, vipServerId, gameTitle)
-    if DISCORD_WEBHOOK_URL == "" or DISCORD_WEBHOOK_URL == "https://discord.com/api/webhooks/YOUR_WEBHOOK_URL_HERE" then
-        print("Webhook chưa được cấu hình!")
-        return
-    end
-    
-    local player = Players.LocalPlayer
-    local currentTime = os.date("%Y-%m-%d %H:%M:%S")
-    
-    local embedData = {
-        ["embeds"] = {{
-            ["title"] = "🎮 Roblox Game Join Log",
-            ["color"] = 3447003,
-            ["fields"] = {
-                {
-                    ["name"] = "👤 Player Info",
-                    ["value"] = string.format("**Name:** %s\n**Display Name:** %s\n**User ID:** %d", 
-                        player.Name, player.DisplayName, player.UserId),
-                    ["inline"] = true
-                },
-                {
-                    ["name"] = "🎯 Game Info",
-                    ["value"] = string.format("**Place ID:** %s\n**Game Title:** %s", 
-                        tostring(placeId), gameTitle or "Loading..."),
-                    ["inline"] = true
-                },
-                {
-                    ["name"] = "⚙️ Connection Details",
-                    ["value"] = string.format("**VIP Server:** %s\n**Launch Data:** %s\n**Time:** %s", 
-                        vipServerId and "Yes" or "No", 
-                        launchData and "Yes" or "No", 
-                        currentTime),
-                    ["inline"] = false
-                }
-            },
-            ["footer"] = {
-                ["text"] = "Teleport Menu by Wxrdead"
-            },
-            ["timestamp"] = os.date("!%Y-%m-%dT%H:%M:%SZ")
-        }}
-    }
-    
-    local success, response = pcall(function()
-        return HttpService:PostAsync(DISCORD_WEBHOOK_URL, HttpService:JSONEncode(embedData), Enum.HttpContentType.ApplicationJson)
-    end)
-    
-    if not success then
-        warn("Failed to send Discord webhook: " .. tostring(response))
-    end
-end
-
--- Lấy thông tin game từ Place ID
-local function getGameInfo(placeId)
-    local success, response = pcall(function()
-        return HttpService:GetAsync("https://games.roblox.com/v1/games?universeIds=" .. tostring(placeId))
-    end)
-    
-    if success then
-        local data = HttpService:JSONDecode(response)
-        if data and data.data and data.data[1] then
-            return data.data[1].name
-        end
-    end
-    return "Unknown Game"
-end
-
--- Phân tích link (cải tiến)
+-- Phân tích link
 local function parseInput(inputText)
-    local placeId, vipServerId, launchData
+    local placeId, vipServerId
     inputText = tostring(inputText)
 
-    -- Phân tích link có launchData
-    local launchDataPattern = "placeId=(%d+).*launchData=([%w_-]+)"
-    placeId, launchData = string.match(inputText, launchDataPattern)
-    
-    if not placeId then
-        -- Phân tích link VIP server
-        local linkVipPattern = "roblox%.com/games/(%d+)/.-%?privateServerLinkCode=([%w_-]+)"
-        placeId, vipServerId = string.match(inputText, linkVipPattern)
-    end
+    local linkVipPattern = "roblox%.com/games/(%d+)/.-%?privateServerLinkCode=([%w_-]+)"
+    placeId, vipServerId = string.match(inputText, linkVipPattern)
 
     if not placeId then
-        -- Phân tích link game thông thường
         placeId = string.match(inputText, "roblox%.com/games/(%d+)")
     end
 
     if not placeId then
-        -- Phân tích link game tiếng Việt
         placeId = string.match(inputText, "roblox%.com/vi/games/(%d+)")
     end
 
     if not placeId and tonumber(inputText) then
-        -- Nếu chỉ là số ID
         placeId = inputText
     end
 
-    return tonumber(placeId), vipServerId, launchData
+    return tonumber(placeId), vipServerId
 end
 
 -- Nút Join Game
 JoinButton.MouseButton1Click:Connect(function()
     local text = TextBox.Text
-    local placeId, vipServerId, launchData = parseInput(text)
+    local placeId, vipServerId = parseInput(text)
 
     if placeId then
         local exists = false
@@ -249,18 +168,8 @@ JoinButton.MouseButton1Click:Connect(function()
             saveHistory()
         end
 
-        -- Lấy thông tin game và gửi webhook
-        local gameTitle = getGameInfo(placeId)
-        sendDiscordWebhook(placeId, launchData, vipServerId, gameTitle)
-
-        -- Teleport based on type
         if vipServerId then
             TeleportService:TeleportToPrivateServer(placeId, vipServerId, Players.LocalPlayer)
-        elseif launchData then
-            -- Teleport với launch data
-            local teleportOptions = Instance.new("TeleportOptions")
-            teleportOptions.ServerInstanceId = launchData
-            TeleportService:TeleportAsync(placeId, {Players.LocalPlayer}, teleportOptions)
         else
             TeleportService:Teleport(placeId, Players.LocalPlayer)
         end
